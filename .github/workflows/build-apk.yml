@@ -1,0 +1,74 @@
+name: Build Android APK (TAFITA MADA Learn)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 3. Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 4. Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 5. Install dependencies
+        run: |
+          npm ci || npm install
+
+      - name: 6. Build Web application (Vite)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://szxficncfyvghhxqzlnp.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'sb_publishable_GkEujMRPoEwn1vl3XLSevQ_IGxT85LU' }}
+        run: |
+          npm run build
+
+      - name: 7. Synchronize Capacitor Android Platform
+        run: |
+          npx cap sync android
+
+      - name: 8. Grant execute permission for Gradle wrapper
+        run: |
+          chmod +x android/gradlew
+
+      - name: 9. Build Android Debug APK with Gradle
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+
+      - name: 10. Locate and Prepare APK
+        id: find_apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: APK not found!"
+            exit 1
+          fi
+          echo "Found APK at: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: 11. Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tafita-mada-learn-debug-apk
+          path: ${{ steps.find_apk.outputs.apk_path }}
+          retention-days: 14

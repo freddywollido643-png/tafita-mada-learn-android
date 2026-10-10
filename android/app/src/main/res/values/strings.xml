@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TAFITA MADA Learn</string>
+    <string name="title_activity_main">TAFITA MADA Learn</string>
+    <string name="package_name">mg.tafitamada.learn</string>
+    <string name="custom_url_scheme">mg.tafitamada.learn</string>
+</resources>
