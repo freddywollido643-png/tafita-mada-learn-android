@@ -42,6 +42,7 @@ jobs:
           node --version
           npm --version
           java -version
+          chmod +x android/gradlew
           cd android
           ./gradlew --version
 
