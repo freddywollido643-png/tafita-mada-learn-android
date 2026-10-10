@@ -3,10 +3,13 @@ name: Build Android APK (TAFITA MADA Learn)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-apk:
@@ -20,19 +23,27 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
+
+      - name: Verify tool versions
+        run: |
+          node --version
+          npm --version
+          java -version
+          cd android
+          ./gradlew --version
 
       - name: Build Web application
         env:
@@ -51,20 +62,20 @@ jobs:
           cd android
           ./gradlew assembleDebug --stacktrace
 
-      - name: Locate APK
-        id: find_apk
+      - name: Verify APK
         run: |
           APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ ! -f "$APK_PATH" ]; then
-            echo "APK not found"
+          if [ ! -s "$APK_PATH" ]; then
+            echo "ERROR: APK missing or empty"
             find android -name "*.apk"
             exit 1
           fi
-          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+          ls -lh "$APK_PATH"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: tafita-mada-learn-debug-apk
-          path: ${{ steps.find_apk.outputs.apk_path }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 14
